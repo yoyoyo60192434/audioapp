@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <title>音声アップロード</title>
+    <script src="https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js"></script>
+</head>
+<body>
+
+<h1>音声ファイル一覧</h1>
+
+<button id="loginBtn">ログイン</button>
+<button id="logoutBtn" style="display:none;">ログアウト</button>
+
+<form id="uploadForm">
+    <input type="file" id="fileInput" accept=".mp3,.wav" required />
+    <button type="submit">アップロード</button>
+</form>
+
+<ul>
+    <li th:each="file : ${audioFiles}">
+        <p th:text="${file}"></p>
+        <audio controls th:src="@{'/audio/' + ${file}}"></audio>
+        <button type="button" onclick="deleteFile('[[${file}]]')">削除</button>
+    </li>
+</ul>
+
+<script>
+  // Firebase 初期化（Firebaseコンソールの設定に置き換えてください）
+  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+  const firebaseConfig = {
+    apiKey: "AIzaSyBWRXSkoqbpo4DN2kNfXBcAhJbBv0byCQg",
+    authDomain: "kotone-voice-button.firebaseapp.com",
+    projectId: "kotone-voice-button",
+    storageBucket: "kotone-voice-button.firebasestorage.app",
+    messagingSenderId: "796574863436",
+    appId: "1:796574863436:web:c98a36e70dc9a8b17fe4e9",
+    measurementId: "G-RVHKYHB71J"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+
+  const loginBtn = document.getElementById('loginBtn');
+  const logoutBtn = document.getElementById('logoutBtn');
+  const uploadForm = document.getElementById('uploadForm');
+
+  loginBtn.onclick = () => {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    auth.signInWithPopup(provider);
+  };
+
+  logoutBtn.onclick = () => auth.signOut();
+
+  auth.onAuthStateChanged(user => {
+    if (user) {
+      loginBtn.style.display = 'none';
+      logoutBtn.style.display = 'inline';
+    } else {
+      loginBtn.style.display = 'inline';
+      logoutBtn.style.display = 'none';
+    }
+  });
+
+  uploadForm.onsubmit = async (e) => {
+    e.preventDefault();
+    const file = document.getElementById('fileInput').files[0];
+    if (!file) return alert("ファイルを選択してください");
+
+    const token = await auth.currentUser.getIdToken();
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    fetch("/upload", {
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer " + token
+      },
+      body: formData
+    }).then(() => {
+      alert("アップロード成功");
+      location.reload();
+    }).catch(() => alert("アップロード失敗"));
+  };
+
+  function deleteFile(filename) {
+    if (!confirm("削除しますか？")) return;
+
+    auth.currentUser.getIdToken().then(token => {
+      fetch("/delete", {
+        method: "POST",
+        headers: {
+          "Authorization": "Bearer " + token,
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        body: "filename=" + encodeURIComponent(filename)
+      }).then(() => location.reload())
+        .catch(() => alert("削除失敗"));
+    });
+  }
+</script>
+
+</body>
+</html>
