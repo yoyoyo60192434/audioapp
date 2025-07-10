@@ -1,0 +1,3 @@
+# Firebase秘密鍵ファイルをGit管理から除外
+src/main/resources/firebase/serviceAccountKey.json
+target/classes/firebase/serviceAccountKey.json
